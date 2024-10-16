@@ -1286,27 +1286,28 @@ def load_pipeline() -> StableDiffusionXLPipeline:
     pipeline = StableDiffusionXLPipeline.from_pretrained(
         "./models/newdream-sdxl-20",
         torch_dtype=torch.float16,
+        use_safetensors=True,
         local_files_only=True,
     )
     #pipeline.vae = AutoencoderTiny.from_pretrained("madebyollin/taesdxl", torch_dtype=torch.float16)
-    pipeline.scheduler = UniPCMultistepScheduler.from_config('./src',)
+    pipeline.scheduler = UniPCMultistepScheduler.from_config('./src/config',)
     pipeline.to("cuda")
 
-    config = CompilationConfig.Default()
+    compilation_config = CompilationConfig.Default()
     # xformers and Triton are suggested for achieving best performance.
     try:
         import xformers
-        config.enable_xformers = True
+        compilation_config.enable_xformers = True
     except ImportError:
         print('xformers not installed, skip')
     try:
         import triton
-        config.enable_triton = True
+        compilation_config.enable_triton = True
     except ImportError:
         print('Triton not installed, skip')
-    config.enable_cuda_graph = True
-    pipeline = compile(pipeline, config)
-    for _ in range(3):
+    compilation_config.enable_cuda_graph = True
+    pipeline = compile(pipeline, compilation_config)
+    for _ in range(4):
         pipeline(prompt="an astronaut on a horse", num_inference_steps=14)
 
     return pipeline
@@ -1321,5 +1322,5 @@ def infer(request: TextToImageRequest, pipeline: StableDiffusionXLPipeline) -> I
         width=request.width,
         height=request.height,
         generator=generator,
-        num_inference_steps=5,
+        num_inference_steps=6,
     ).images[0]
